@@ -1,151 +1,144 @@
-Flooding, LSAs, and the LSDB - How Link-State Protocols Spread Truth
+Flooding, LSAs, and the LSDB - How Routers Share Truth
 
-(Truth = the actual, real state of the network at this moment.)
+Before anything else, we define the core concept used throughout link-state routing:
 
-Link-state protocols (OSPF, IS-IS) depend on a simple idea:
+What is “truth” in a link-state network?
 
-Every router must know the same truth about the network.
+Truth = the real, accurate description of the network’s current state.
 
-To accomplish that, they use:
+It includes:
 
-LSAs (OSPF) or LSPs (IS-IS)
+which routers exist
 
-Flooding
+which interfaces and links are up
 
-The LSDB (Link-State Database)
+which neighbors are reachable
 
-This is how link-state protocols synchronize reality.
+the cost of each link
 
-1. LSAs: Packets of Truth
+which prefixes are advertised
 
-An LSA is a small packet that describes something true about the router that created it:
+which areas or levels routers belong to
 
-“Here are my interfaces.”
+Truth is the actual topology and condition of the network right now.
+Link-state protocols exist to distribute that truth to every router.
 
-“Here are my neighbors.”
+1. LSAs/LSPs: Packets of Truth
 
-“Here is the cost of my links.”
+OSPF and IS-IS routers describe their understanding of the network using small structured messages:
 
-“Here is a new prefix I learned.”
+OSPF: LSAs
 
-“Here is a link that just went down.”
+IS-IS: LSPs
 
-LSAs contain facts, not opinions.
+Each message contains truths such as:
 
-Every LSA is signed with the router’s identity (the loopback you documented earlier).
+“These are my active interfaces.”
 
-2. Flooding: Hop-by-Hop Truth Sharing
+“These are my neighbors.”
 
-When a router receives an LSA, it must:
+“This is the cost of each link.”
 
-Install it in the LSDB
+“This prefix exists behind me.”
 
-Forward (flood) it to every neighbor except where it came from
+Each LSA/LSP is signed with the router’s identity (the loopback).
 
-This creates a domino effect:
+LSAs don’t contain routes - they contain truth about the topology.
 
-R1 → R2 → R3 → R4 → R5
+2. Flooding: How Truth Spreads
 
+Flooding is the mechanism that ensures every router learns every truth.
 
-Until EVERY router in the area has the same information.
+When a router receives a new truth (an LSA/LSP), it:
 
-Flooding ensures:
+Stores it in the LSDB
 
-Truth propagates fast
+Forwards it to all neighbors EXCEPT the one it learned it from
 
-No one is left out
+This hop-by-hop process continues until:
 
-Everyone builds the same map
+Every router has seen every truth.
 
-Flooding is controlled. It uses mechanisms to prevent loops, duplicates, and infinite propagation.
+Flooding is “controlled” - routers use sequence numbers and checks to avoid loops and duplicates.
 
-3. The LSDB: The Map of All Truth
+Flooding exists for one reason:
 
-The LSDB is a collection of all LSAs from all routers.
+Without shared truth, the network cannot agree on paths.
+3. The LSDB: The Shared Book of Truth
 
-Think of it like a shared book that every router must have a copy of:
+Every router stores every truth it has learned in its LSDB.
 
-If one LSA changes every router must update
+Think of the LSDB as a shared encyclopedia:
 
-If one route fails every router must learn it
+Every router has a copy
 
-If one cost increases recalculation happens everywhere
+Every router must have the SAME copy
 
-All routers MUST agree on the LSDB.
+If one router has different truth, routing breaks
 
-If they don’t, the network becomes inconsistent.
+The LSDB is the foundation for SPF.
 
-4. SPF: Turning Truth Into a Map
+4. SPF: Turning Truth Into the Map
 
-Once the LSDB is fully synchronized, each router runs:
+Once all routers have the same set of truths in their LSDBs, each router independently runs:
 
 SPF (Shortest Path First)
-also known as Dijkstra’s algorithm.
 
-SPF takes the LSDB and produces:
+SPF uses the shared truth to build:
 
-A routing table (RIB)
+the routing table (RIB)
 
-A forwarding table (FIB)
+the forwarding table (FIB)
 
-SPF doesn't discover paths —
-it discovers the relationships described in the LSDB.
+SPF assumes the LSDB is complete and correct.
+If the truth is wrong → the map is wrong → forwarding is wrong.
 
-5. Why Flooding Exists
+5. Why Flooding and LSDB Sync Matter
 
-Flooding exists because:
+If the LSDB is inconsistent…
 
-Truth must propagate quickly
+routers believe different truths
 
-All routers must agree on the same facts
+SPF produces different outputs
 
-The network must converge consistently
+routing loops form
 
-Without flooding:
+some routers blackhole traffic
 
-Networks would form loops
+convergence falls apart
 
-Different routers would see different realities
+For link-state to work:
 
-SPF would operate on bad information
+All routers must know the same truth, at the same time.
 
-Flooding = synchronized reality.
+This is why flooding is so aggressive and sensitive.
 
-6. Architect Mindset: What This Really Means
+6. Architect Mindset
 
-You don’t troubleshoot OSPF or IS-IS by guessing.
+When debugging link-state problems, always ask:
 
-You ask:
+Did every router receive the truth?
 
-Did the truth flood correctly?
+Do all LSDBs match?
 
-Did every router install the LSA?
+Is someone failing to flood?
 
-Does everyone’s LSDB match?
+Is someone flooding too much?
 
-Is someone suppressing or corrupting truth?
+Is churn (constant truth changes) overwhelming the control plane?
 
-Did churn overwhelm the control plane?
-
-Did SPF run too often?
-
-This is high-level thinking.
+High-level engineers debug truth flow, not “routes.”
 
 Key Insight
 
 Link-state protocols do not trade routes.
 They trade truth.
 
-Each router:
+Routes are calculated from truth.
+Truth is distributed through flooding.
 
-shares what it knows
-
-forwards what it learns
-
-participates in a network-wide agreement about reality
-
-The LSDB is the foundation for all routing decisions.
+Without truth, nothing else works.
 
 Attribution
 
-Conceptual clarity developed through discussions with Padlinksky.
+Developed with architectural support from Padlinksky.
